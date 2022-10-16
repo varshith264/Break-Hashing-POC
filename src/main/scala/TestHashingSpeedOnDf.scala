@@ -9,10 +9,11 @@ import org.apache.spark.sql._
 import scala.collection.mutable;
 
 object TestHashingSpeedOnDf {
-//  val csvPath = "Resources/Sales_10000_Records.csv";
+//  val csvPath = "Resources/Sales_10000_rows.csv";
   val CSV_100_ROWS_PATH = "Resources/Sales_100_rows.csv";
+  val CSV_10000_ROWS_PATH = "Resources/Sales_10000_rows.csv";
   val CSV_100K_ROWS_PATH = "Resources/sampleTest.csv";
-  val csvPath = CSV_100_ROWS_PATH;
+  val csvPath = CSV_100K_ROWS_PATH;
 
   val findComplexHashOfRow: Row => String = (row: Row) => {
     val findComplexHash = (string: String) => {
@@ -52,7 +53,7 @@ object TestHashingSpeedOnDf {
 
     //now add a new column hashcode and then do df.show()
     t0 = System.nanoTime()
-//    readAndGenerateHashCode(spark)
+    readAndGenerateHashCode(spark)
     t1 = System.nanoTime()
     println("Elapsed time while generated and adding hashcode: " + (t1 - t0) / 1000000000 + "s")
 
@@ -62,15 +63,14 @@ object TestHashingSpeedOnDf {
 
   private def readCsvAndShow(spark: SparkSession): Unit = {
     val dataDf = spark.read.option("header", value = true).csv(csvPath);
-    println(dataDf.collectAsList().size())
+    dataDf.show(100000);
   }
 
   def readAndGenerateHashCode(spark: SparkSession): Unit = {
     val surveyDataDf: DataFrame = spark.read.option("header", value = true).csv(csvPath);
     val findComplexHashOfRowUDF = udf(findComplexHashOfRow);
-    val columnNames = surveyDataDf.schema.fieldNames;
     val withHashCodeDf = surveyDataDf
-      .withColumn("Hash code", findComplexHashOfRowUDF(struct(columnNames.map(col): _*)));
-    withHashCodeDf.show(10000);
+      .withColumn("Hash code", findComplexHashOfRowUDF(struct(surveyDataDf.schema.fieldNames.map(col): _*)));
+    withHashCodeDf.show(100000);
   }
 }
